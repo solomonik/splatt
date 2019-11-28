@@ -706,6 +706,8 @@ double mpi_cpd_als_iterate(
       mats[MAX_NMODES]->I = tensors[0].dims[m];
 
       /* M1 = X * (C o B) */
+      MPI_Barrier(MPI_COMM_WORLD);
+      double t_start = MPI_Wtime();
       timer_start(&timers[TIMER_MTTKRP]);
       mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, opts);
       timer_stop(&timers[TIMER_MTTKRP]);
@@ -725,6 +727,12 @@ double mpi_cpd_als_iterate(
         /* skip the whole process */
         m1 = mats[MAX_NMODES];
       }
+      MPI_Barrier(MPI_COMM_WORLD);
+      double t_stop = MPI_Wtime();
+      int mrank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mrank);
+      if (mrank == 0)
+        printf("MTTKRP took %lf seconds\n", t_stop-t_start);
 
       /* invert normal equations (Cholesky factorization) for new factor */
       par_memcpy(globmats[m]->vals, m1->vals, m1->I * nfactors * sizeof(val_t));
